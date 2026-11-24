@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: plant-disease-api
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: PLANT_DISEASE_ADMIN_TOKEN
+        generateValue: true

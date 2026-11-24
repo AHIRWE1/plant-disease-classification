@@ -1,0 +1,31 @@
+# Local Python environment and caches
+.venv/
+venv/
+env/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+
+# Dataset downloads, generated splits, and retraining uploads
+data/tfds_cache/
+data/raw/
+data/processed/
+data/uploaded/
+data/upload_staging/
+data/retraining.sqlite3
+
+# Retraining artifacts
+# The initial trained model is deliberately allowed and committed manually.
+models/*.keras
+models/candidates/
+models/versions/
+
+# Generated visualizations
+# Small report visualizations may be committed with git add -f.
+visualizations/*.png
+visualizations/*.csv
+visualizations/feature_interpretations.txt
+
+# Local secrets and editor settings
+.streamlit/secrets.toml
+.vscode/
