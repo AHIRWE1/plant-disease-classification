@@ -374,7 +374,7 @@ def retrain_uploaded_dataset(project_directory, upload_id, epochs=2, batch_size=
     record = get_upload_record(project_directory, upload_id)
     if record["status"] != "queued":
         raise ValueError("Retraining must be queued before it starts.")
-    _update_upload_record(project_directory, upload_id, status="training")
+    update_upload_record(project_directory, upload_id, status="training")
 
     metadata_path = project_directory / "data" / "raw" / "dataset_metadata.json"
     with metadata_path.open(encoding="utf-8") as file:
@@ -505,7 +505,7 @@ def retrain_uploaded_dataset(project_directory, upload_id, epochs=2, batch_size=
             project_directory
         ).as_posix()
 
-    _update_upload_record(
+    update_upload_record(
         project_directory,
         upload_id,
         status="promoted" if promoted else "rejected",

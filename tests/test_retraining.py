@@ -1,15 +1,19 @@
 import io
 import json
+import sys
 import tempfile
+import types
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 from PIL import Image
 
 from src.retraining import (
     get_upload_record,
+    retrain_uploaded_dataset,
     save_uploaded_dataset,
     should_promote_candidate,
     trigger_retraining,
@@ -151,6 +155,107 @@ class RetrainingUploadTests(unittest.TestCase):
                 {"accuracy": 0.91, "loss": 0.251}
             )
         )
+
+    def test_retrain_uploaded_dataset_updates_upload_record(self):
+        upload = save_uploaded_dataset(
+            self.project_directory,
+            self._write_archive("crop___healthy/leaf.png")
+        )
+        trigger_retraining(self.project_directory, upload["upload_id"])
+
+        split_metadata_path = (
+            self.project_directory
+            / "data"
+            / "processed"
+            / "split_metadata.json"
+        )
+        split_metadata_path.parent.mkdir(parents=True)
+        split_metadata_path.write_text(
+            json.dumps({"images_per_split": {"train": 1}}),
+            encoding="utf-8"
+        )
+
+        class FakeDataset:
+            def map(self, *args, **kwargs):
+                return self
+
+            def batch(self, *args, **kwargs):
+                return self
+
+            def unbatch(self):
+                return self
+
+            def concatenate(self, other):
+                return self
+
+            def shuffle(self, *args, **kwargs):
+                return self
+
+            def prefetch(self, *args, **kwargs):
+                return self
+
+        class FakeBaseModel:
+            name = "mobilenetv2_base"
+
+        class FakeCandidateModel:
+            layers = [FakeBaseModel()]
+
+            def fit(self, *args, **kwargs):
+                pass
+
+            def save(self, path):
+                pass
+
+        candidate_model = FakeCandidateModel()
+        tensorflow = types.ModuleType("tensorflow")
+        tensorflow.data = types.SimpleNamespace(
+            AUTOTUNE=object(),
+            Dataset=types.SimpleNamespace(
+                from_tensor_slices=lambda *args: FakeDataset()
+            )
+        )
+        tensorflow.keras = types.SimpleNamespace(
+            Model=FakeBaseModel,
+            models=types.SimpleNamespace(
+                load_model=lambda *args, **kwargs: candidate_model
+            ),
+            callbacks=types.SimpleNamespace(
+                EarlyStopping=lambda **kwargs: object()
+            )
+        )
+
+        with (
+            patch.dict(sys.modules, {"tensorflow": tensorflow}),
+            patch(
+                "src.retraining.load_split_datasets",
+                return_value={
+                    "train": FakeDataset(),
+                    "validation": FakeDataset()
+                }
+            ),
+            patch("src.retraining.compile_model"),
+            patch("src.retraining.unfreeze_last_layers"),
+            patch(
+                "src.retraining._evaluate_for_promotion",
+                side_effect=[
+                    {"accuracy": 0.90, "loss": 0.20},
+                    {"accuracy": 0.89, "loss": 0.19}
+                ]
+            )
+        ):
+            result = retrain_uploaded_dataset(
+                self.project_directory,
+                upload["upload_id"],
+                epochs=1
+            )
+
+        record = get_upload_record(
+            self.project_directory,
+            upload["upload_id"]
+        )
+        self.assertFalse(result["promoted"])
+        self.assertEqual(record["status"], "rejected")
+        self.assertEqual(record["result"], result)
 
 
 if __name__ == "__main__":

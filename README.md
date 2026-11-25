@@ -1,9 +1,8 @@
 # Plant Disease Classification
 
-An image-classification project for identifying plant leaf conditions using
-the PlantVillage dataset. This repository is being built as an end-to-end
-machine-learning pipeline for the African Leadership University BSE Machine
-Learning Pipeline summative assignment.
+An end-to-end image-classification project for identifying plant leaf
+conditions using the PlantVillage dataset, built for the African Leadership
+University BSE Machine Learning Pipeline summative assignment.
 
 ## Dataset acquisition
 
@@ -36,11 +35,15 @@ retrying.
 ## Notebook walkthrough
 
 Open [notebook/plant_disease_classification.ipynb](./notebook/plant_disease_classification.ipynb)
-in VS Code or Jupyter with the project `.venv` selected. It documents
-acquisition, class-count analysis, preprocessing, split creation,
-visualization, training, held-out evaluation, and one prediction example.
-Set `RUN_TRAINING = True` in its training cell to train again; this may take
-several minutes on CPU.
+in Google Colab and run its cells from top to bottom. The setup cell clones
+this repository and installs missing notebook dependencies; the acquisition
+cell downloads PlantVillage through TensorFlow Datasets into the temporary
+Colab runtime, so you do not need to upload dataset files. Select a GPU
+runtime when available. The notebook covers preprocessing, reproducible
+splits, visualizations, train-only augmentation, a frozen-versus-fine-tuned
+comparison, held-out evaluation, class-level error analysis, and one
+prediction example. Colab storage is temporary; copy or download the model
+and evaluation results before the runtime is deleted.
 
 ## Create train, validation, and test splits
 
