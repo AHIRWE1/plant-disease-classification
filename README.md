@@ -79,26 +79,45 @@ averaged precision, recall, and F1-score, plus per-class metrics. The optional
 `--weights none` setting is intended for local architecture checks; use the
 default ImageNet weights for the transfer-learning assignment workflow.
 
-### Current measured result
+### Saved model results
 
-The current saved model was evaluated on 1,133 held-out test images from the
-seed-42 70/15/15 split: accuracy **0.9303**, macro precision **0.9315**, macro
-recall **0.9302**, macro F1 **0.9286**, and test loss **0.2010**. Treat these
-as results for this specific sample and training run, not as a guarantee for
-new field images.
+The saved local model report in `models/evaluation_metrics.json` records
+accuracy **0.9303**, macro precision **0.9315**, macro recall **0.9302**,
+macro F1 **0.9286**, and test loss **0.2010** on 1,133 held-out images from a
+seed-42 70/15/15 split. The executed Colab notebook currently reports a
+separate run at **0.6390 accuracy** and **0.5896 macro F1**. These are
+different model runs and must not be presented as one result; deploy a model
+only with the evaluation report produced for that same model and split. The
+model binary is excluded from Git and must be transferred separately.
 
-## Docker and load testing
+## Docker and local smoke test
 
-Build and run one API container locally:
+The API and Streamlit dashboard have separate images. The API image includes
+the saved model and class labels, while local data/model directories are
+mounted into the API container. Before building, make sure
+`models/plant_disease_classifier.keras` exists locally. Create a local token
+file and start both services:
 
 ```powershell
-docker build -t plant-disease-api .
-docker run --rm -p 8000:8000 plant-disease-api
+Copy-Item .env.example .env
+# Edit .env and replace the example token before using retraining.
+docker compose config
+docker compose up --build
 ```
 
-Run Locust against that API:
+In another terminal, confirm the API responds:
 
 ```powershell
+Invoke-RestMethod http://localhost:8000/health
+```
+
+The dashboard opens at `http://localhost:8501`. Stop the services with
+Ctrl+C, then run `docker compose down`. Never commit `.env`.
+
+Install Locust separately and run it against the API:
+
+```powershell
+python -m pip install -r requirements-loadtest.txt
 locust -f locustfile.py --host http://127.0.0.1:8000
 ```
 
@@ -106,6 +125,18 @@ Open `http://127.0.0.1:8089`, set the user count and spawn rate, and run a
 flood test. Record p50/p95/p99 latency, mean/median response time,
 requests per second, and failures for one container and additional container
 counts. The Locust script submits one synthetic 224 x 224 JPEG per request.
+
+## AWS EC2 deployment preparation
+
+The current deployment target is one Ubuntu 26.04 EC2 instance running the
+API and Streamlit dashboard with Docker Compose. This setup uses the
+instance's EBS-backed project directory for persistent `data/` and `models/`;
+it does not use ECS or EFS and does not provide automatic scaling. Review
+cost alerts, enable MFA, and restrict SSH/dashboard access before launching
+the public demo. The API port is bound to the EC2 host's loopback interface;
+only the dashboard port is published. See [aws/README.md](./aws/README.md)
+for artifact transfer, SSH, Docker installation, security-group, smoke-test,
+and cleanup instructions.
 
 ## Dataset visualizations
 
@@ -171,6 +202,9 @@ decision.
 - [x] Protected labelled ZIP upload, persisted upload tracking, and guarded retraining
 - [ ] Container deployment and Locust load testing
 
-Dataset files, trained models, and generated outputs should not be committed
-to GitHub. See the dataset source and terms at the
+Do not commit dataset images, TFDS cache, uploaded retraining data, local
+secrets, or candidate model versions. The active `.keras` model is ignored
+because of its size; make it available locally before building the API image.
+The small class-label metadata, evaluation report, and selected dashboard
+charts are kept as project artifacts. See the dataset source and terms at the
 [TensorFlow Datasets PlantVillage page](https://www.tensorflow.org/datasets/catalog/plant_village).

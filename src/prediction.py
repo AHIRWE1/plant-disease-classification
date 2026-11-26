@@ -10,6 +10,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, UnidentifiedImageError
 
+from src.model import load_keras_model
+
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 MAX_IMAGE_PIXELS = 40_000_000
@@ -68,22 +70,31 @@ class PlantDiseasePredictor:
 
 def load_predictor(project_directory):
     """Load the saved Keras model and class names from project artifacts."""
-    import tensorflow as tf
-
     project_directory = Path(project_directory).resolve()
     model_path = project_directory / "models" / "plant_disease_classifier.keras"
-    metadata_path = project_directory / "data" / "raw" / "dataset_metadata.json"
+    class_names_path = project_directory / "models" / "class_names.json"
+    dataset_metadata_path = (
+        project_directory / "data" / "raw" / "dataset_metadata.json"
+    )
     if not model_path.is_file():
         raise FileNotFoundError(f"Trained model not found: {model_path}")
-    if not metadata_path.is_file():
-        raise FileNotFoundError(f"Class metadata not found: {metadata_path}")
 
-    with metadata_path.open(encoding="utf-8") as file:
-        class_names = json.load(file).get("class_names")
+    if class_names_path.is_file():
+        with class_names_path.open(encoding="utf-8") as file:
+            class_names = json.load(file).get("class_names")
+    elif dataset_metadata_path.is_file():
+        with dataset_metadata_path.open(encoding="utf-8") as file:
+            class_names = json.load(file).get("class_names")
+    else:
+        raise FileNotFoundError(
+            "Class metadata was not found. Expected either "
+            f"{class_names_path} or {dataset_metadata_path}."
+        )
+
     if not isinstance(class_names, list) or not class_names:
         raise ValueError("Class metadata must contain a non-empty class_names list.")
 
-    model = tf.keras.models.load_model(model_path, compile=False)
+    model = load_keras_model(model_path, compile=False)
     if model.output_shape[-1] != len(class_names):
         raise ValueError(
             "The saved model output count does not match class metadata."

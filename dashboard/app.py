@@ -94,7 +94,6 @@ if uploaded_image is not None:
 st.subheader("Dataset insights")
 visualization_files = (
     ("Class distribution", "class_distribution.png"),
-    ("Sample image from each class", "class_samples.png"),
     ("Image feature comparisons", "image_feature_comparisons.png")
 )
 for caption, filename in visualization_files:
@@ -126,7 +125,11 @@ st.caption(
 admin_token = st.text_input(
     "Retraining admin token",
     type="password",
-    help="Set PLANT_DISEASE_ADMIN_TOKEN in the API terminal before starting it."
+    help=(
+        "Enter the exact PLANT_DISEASE_ADMIN_TOKEN configured for the API. "
+        "With Docker Compose, if you changed .env after starting the API, "
+        "recreate it with: docker compose up -d --force-recreate api"
+    )
 )
 uploaded_archive = st.file_uploader(
     "Choose a labelled ZIP archive",
@@ -165,6 +168,28 @@ if st.button(
             f"Saved {upload_result['image_count']} labelled images from "
             f"{len(upload_result['class_counts'])} classes. Retraining queued."
         )
+    except requests.HTTPError as error:
+        response = error.response
+        if response is not None and response.status_code == 401:
+            st.error(
+                "The API rejected the admin token (401). Enter the exact "
+                "PLANT_DISEASE_ADMIN_TOKEN used by the API. If you changed "
+                ".env after starting Docker Compose, recreate the API with "
+                "`docker compose up -d --force-recreate api`."
+            )
+        else:
+            detail = str(error)
+            if response is not None:
+                try:
+                    payload = response.json()
+                except ValueError:
+                    detail = response.text or detail
+                else:
+                    if isinstance(payload, dict):
+                        detail = str(payload.get("detail", detail))
+                    else:
+                        detail = response.text or detail
+            st.error(f"Could not upload data or queue retraining: {detail}")
     except requests.RequestException as error:
         st.error(f"Could not upload data or queue retraining: {error}")
 

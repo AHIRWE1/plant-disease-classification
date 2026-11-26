@@ -17,7 +17,7 @@ import numpy as np
 from PIL import Image, UnidentifiedImageError
 from sklearn.metrics import accuracy_score
 
-from src.model import compile_model, unfreeze_last_layers
+from src.model import compile_model, load_keras_model, unfreeze_last_layers
 from src.preprocessing import load_split_datasets
 
 
@@ -440,7 +440,8 @@ def retrain_uploaded_dataset(project_directory, upload_id, epochs=2, batch_size=
     candidate_directory.mkdir(parents=True, exist_ok=True)
     candidate_path = candidate_directory / f"{upload_id}.keras"
 
-    candidate_model = tf.keras.models.load_model(model_path, compile=False)
+    candidate_model = load_keras_model(model_path, compile=False)
+    compile_model(candidate_model, learning_rate=1e-5)
     current_metrics = _evaluate_for_promotion(
         candidate_model,
         datasets["validation"]

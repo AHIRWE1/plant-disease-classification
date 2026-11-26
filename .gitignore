@@ -13,6 +13,7 @@ data/processed/
 data/uploaded/
 data/upload_staging/
 data/retraining.sqlite3
+plant-disease-classification-results/
 
 # Retraining artifacts
 # The initial trained model is deliberately allowed and committed manually.
@@ -29,3 +30,11 @@ visualizations/feature_interpretations.txt
 # Local secrets and editor settings
 .streamlit/secrets.toml
 .vscode/
+.env
+.env.*
+!.env.example
+
+# These small, generated charts are included in the dashboard image.
+!visualizations/class_distribution.png
+!visualizations/image_feature_comparisons.png
+!visualizations/feature_interpretations.txt

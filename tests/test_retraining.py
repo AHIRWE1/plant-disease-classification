@@ -200,13 +200,31 @@ class RetrainingUploadTests(unittest.TestCase):
         class FakeCandidateModel:
             layers = [FakeBaseModel()]
 
+            def __init__(self):
+                self.compiled = False
+
             def fit(self, *args, **kwargs):
+                if not self.compiled:
+                    raise AssertionError("Candidate model must be compiled.")
                 pass
 
             def save(self, path):
                 pass
 
         candidate_model = FakeCandidateModel()
+        evaluation_results = iter([
+            {"accuracy": 0.90, "loss": 0.20},
+            {"accuracy": 0.89, "loss": 0.19}
+        ])
+
+        def compile_candidate(model, learning_rate):
+            model.compiled = True
+
+        def evaluate_candidate(model, dataset):
+            if not model.compiled:
+                raise AssertionError("Candidate model must be compiled.")
+            return next(evaluation_results)
+
         tensorflow = types.ModuleType("tensorflow")
         tensorflow.data = types.SimpleNamespace(
             AUTOTUNE=object(),
@@ -233,14 +251,14 @@ class RetrainingUploadTests(unittest.TestCase):
                     "validation": FakeDataset()
                 }
             ),
-            patch("src.retraining.compile_model"),
+            patch(
+                "src.retraining.compile_model",
+                side_effect=compile_candidate
+            ),
             patch("src.retraining.unfreeze_last_layers"),
             patch(
                 "src.retraining._evaluate_for_promotion",
-                side_effect=[
-                    {"accuracy": 0.90, "loss": 0.20},
-                    {"accuracy": 0.89, "loss": 0.19}
-                ]
+                side_effect=evaluate_candidate
             )
         ):
             result = retrain_uploaded_dataset(

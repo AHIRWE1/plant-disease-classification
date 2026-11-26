@@ -1,0 +1,9 @@
+Image-feature interpretations
+=============================
+
+These descriptive comparisons use the mean for each class, so each class contributes equally.
+They describe this dataset and are not proof that a feature causes a disease or drives the neural network prediction.
+
+Mean brightness: class-average healthy=0.5222, diseased=0.4671; higher in healthy classes (diseased minus healthy=-0.0552).
+Green-channel ratio: class-average healthy=0.3744, diseased=0.3649; higher in healthy classes (diseased minus healthy=-0.0095).
+Edge contrast: class-average healthy=0.0332, diseased=0.0341; higher in diseased classes (diseased minus healthy=+0.0009).
